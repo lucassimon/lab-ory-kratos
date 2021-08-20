@@ -1,0 +1,86 @@
+version: v0.7.1-alpha.1
+
+dsn: memory
+
+serve:
+  public:
+    base_url: ${GATEWAY_SVC_URL}/user-svc/public
+    port: 4433
+    cors:
+      enabled: true
+      allowed_origins:
+        - ${GATEWAY_SVC_URL}
+      allowed_methods:
+        - GET
+      allowed_headers:
+        - Content-Type
+        - Accept
+        - Cookie
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
+  admin:
+    base_url: ${GATEWAY_SVC_URL}/user-svc/admin
+    port: 4434
+
+selfservice:
+  default_browser_return_url: ${GATEWAY_SVC_URL}/
+  whitelisted_return_urls:
+    - ${GATEWAY_SVC_URL}
+
+  methods:
+    password:
+      enabled: true
+
+  flows:
+    error:
+      ui_url: ${GATEWAY_SVC_URL}/auth/error
+
+    settings:
+      ui_url: ${GATEWAY_SVC_URL}/auth/settings
+      privileged_session_max_age: 15m
+
+    recovery:
+      enabled: true
+      ui_url: ${GATEWAY_SVC_URL}/auth/recovery
+
+    verification:
+      enabled: true
+      ui_url: ${GATEWAY_SVC_URL}/auth/verify
+      after:
+        default_browser_return_url: ${GATEWAY_SVC_URL}/
+
+    logout:
+      after:
+        default_browser_return_url: ${GATEWAY_SVC_URL}/auth/login
+
+    login:
+      ui_url: ${GATEWAY_SVC_URL}/auth/login
+      lifespan: 10m
+
+    registration:
+      lifespan: 10m
+      ui_url: ${GATEWAY_SVC_URL}/auth/register
+      after:
+        password:
+          hooks:
+            - hook: session
+
+log:
+  level: debug
+  format: text
+  leak_sensitive_values: true
+
+secrets:
+  cookie:
+    - strong-cookie
+  default:
+    - foobarfizzbuzzmarcopolo
+
+hashers:
+  argon2:
+    parallelism: 1
+    memory: 128MB
+    iterations: 2
+    salt_length: 16
+    key_length: 16

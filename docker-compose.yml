@@ -1,0 +1,52 @@
+version: '3.7'
+
+services:
+  kratos-migrate:
+    depends_on:
+      - postgresd
+    build: .
+    environment:
+      DATABASE_URL_DECODED: postgres://kratos:secret@postgresd:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
+      LOG_LEVEL: debug
+    command:
+      -c /home/ory/kratos.yml migrate sql -e --yes
+    restart: on-failure
+
+  iam-svc:
+    depends_on:
+      - kratos-migrate
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL_DECODED: postgres://kratos:secret@postgresd:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
+      SMTP_URL: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+      LOG_LEVEL: debug
+      GATEWAY_SVC_URL: http://local.lab.com
+    command:
+      serve -c /home/ory/kratos.yml --dev --watch-courier
+    ports:
+      - 4433:4433
+      - 4434:4434
+    networks:
+      - default
+      - lab-net
+
+  postgresd:
+    image: postgres:9.6
+    environment:
+      - POSTGRES_USER=kratos
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=kratos
+
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    ports:
+      - "4436:4436"
+      - "4437:4437"
+    networks:
+      - lab-net
+
+networks:
+  lab-net:
+    name: mylab-svc_lab-net
+    external: true
